@@ -1,0 +1,61 @@
+version: "3.9"
+
+services:
+  tasty-sql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: tasty-sql
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=${SA_PASSWORD}
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    networks:
+      - tasty-net
+    volumes:
+      - tasty_sql_data:/var/opt/mssql
+
+  tasty-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tasty-api
+    depends_on:
+      - tasty-sql
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__TastyConnection=${TASTY_CONNECTION}
+    networks:
+      - tasty-net
+
+  caddy:
+    image: caddy:2
+    container_name: tasty-caddy
+    depends_on:
+      - tasty-api
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - tasty-net
+
+networks:
+  tasty-net:
+
+  volumes:
+    tasty_sql_data:
+  caddy_data:
+  caddy_config:
+
+  duckdns:
+    image: lscr.io/linuxserver/duckdns:latest
+    container_name: duckdns
+    environment:
+      - SUBDOMAINS=tastyapi,tastyweb
+      - TOKEN=39e4adeb-0769-4c63-b82d-dbc59c8970b1
+      - TZ=Europe/Ljubljana
+    restart: unless-stopped

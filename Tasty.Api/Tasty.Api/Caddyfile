@@ -1,0 +1,4 @@
+tastyapi.duckdns.org {
+    encode gzip
+    reverse_proxy tasty-api:5000
+}
