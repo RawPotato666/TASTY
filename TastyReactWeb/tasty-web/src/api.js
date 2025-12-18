@@ -1,7 +1,7 @@
 import axios from "axios";
 
 // prek Caddy-ja gre /api -> tasty-api:5000
-const API_BASE_URL = "/api";
+const API_BASE_URL = "http://tastyweb.duckdns.org/api";
 
 export const api = axios.create({
   baseURL: API_BASE_URL,

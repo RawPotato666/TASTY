@@ -40,7 +40,6 @@ export default function NewRecipePage() {
 
   const nextParam = encodeURIComponent(location.pathname);
 
-  // naložimo kategorije/oznake/sestavine
   useEffect(() => {
     async function load() {
       try {
@@ -63,33 +62,32 @@ export default function NewRecipePage() {
     load();
   }, []);
 
-  // čiščenje preview URL-ja
   useEffect(() => {
     return () => {
       if (imagePreview) URL.revokeObjectURL(imagePreview);
     };
   }, [imagePreview]);
 
-  // če ni prijavljen, pokaži prompt za login
+  // Updated unauthorized access view
   if (!user) {
     return (
-      <div className="max-w-md mx-auto bg-white rounded-xl shadow-sm p-6">
-        <h1 className="text-2xl font-bold mb-4 text-slate-900">
-          Dodajanje recepta
+      <div className="max-w-md mx-auto bg-zinc-800 border border-zinc-700 rounded-2xl shadow-2xl p-8 text-center mt-10">
+        <h1 className="text-3xl font-black mb-4 text-white tracking-tight">
+          Dodajanje recepta<span className="text-orange-500">.</span>
         </h1>
-        <p className="mb-4 text-slate-700">
-          Za dodajanje recepta se moraš prijaviti.
+        <p className="mb-8 text-slate-400 leading-relaxed">
+          Za ustvarjanje novih kulinaričnih mojstrovin se moraš najprej prijaviti v svoj račun.
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-3">
           <Link
             to={`/login?next=${nextParam}`}
-            className="px-4 py-2 rounded bg-amber-600 text-white hover:bg-amber-700"
+            className="px-4 py-3 rounded-xl bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold hover:brightness-110 shadow-lg shadow-orange-900/20 active:scale-[0.98] transition-all"
           >
             Prijava
           </Link>
           <Link
             to="/register"
-            className="px-4 py-2 rounded border border-slate-300 text-slate-700 hover:bg-slate-100"
+            className="px-4 py-3 rounded-xl border border-zinc-700 text-slate-300 hover:bg-zinc-700 font-semibold transition-colors"
           >
             Registracija
           </Link>
@@ -136,8 +134,6 @@ export default function NewRecipePage() {
     }
   }
 
-  // --- SESTAVINE ---
-
   function addSestavinaRow() {
     setForm((prev) => ({
       ...prev,
@@ -163,8 +159,6 @@ export default function NewRecipePage() {
       return { ...prev, sestavine: arr };
     });
   }
-
-  // --- KORAKI PRIPRAVE ---
 
   function addKorakRow() {
     setForm((prev) => ({
@@ -202,8 +196,6 @@ export default function NewRecipePage() {
     });
   }
 
-  // --- SUBMIT ---
-
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
@@ -219,13 +211,9 @@ export default function NewRecipePage() {
       casPripraveMin: form.casPripraveMin,
       steviloPorcij: form.steviloPorcij,
       jeJaven: form.jeJaven,
-
-      // avtor = trenutno prijavljen user
       avtorId: user.id,
-
       kategorijaIds: form.kategorijaIds,
       oznakaIds: form.oznakaIds,
-
       sestavine: form.sestavine
         .filter((s) => s.sestavinaId)
         .map((s) => ({
@@ -233,7 +221,6 @@ export default function NewRecipePage() {
           kolicina: s.kolicina,
           opomba: s.opomba,
         })),
-
       korakiPriprave: form.korakiPriprave
         .filter((k) => k.opis.trim())
         .map((k) => ({
@@ -245,15 +232,10 @@ export default function NewRecipePage() {
 
     try {
       setSubmitLoading(true);
-
-      // 1) ustvari recept
       const created = await createRecept(payload);
       const newId = created.id ?? created.Id ?? null;
-      if (!newId) {
-        throw new Error("API ni vrnil ID-ja recepta.");
-      }
+      if (!newId) throw new Error("API ni vrnil ID-ja recepta.");
 
-      // 2) če je izbrana slika -> upload
       if (imageFile) {
         try {
           await uploadReceptImage(newId, imageFile, {
@@ -262,11 +244,8 @@ export default function NewRecipePage() {
           });
         } catch (err) {
           console.error("Upload slike ni uspel", err);
-          // recept je vseeno ustvarjen, samo brez slike
         }
       }
-
-      // 3) preusmeritev na detail recepta
       navigate(`/recepti/${newId}`);
     } catch (err) {
       console.error(err);
@@ -276,303 +255,269 @@ export default function NewRecipePage() {
     }
   }
 
-  if (loadingInit) return <p>Nalaganje podatkov za obrazec...</p>;
-  if (error && !submitLoading)
-    return <p className="text-red-600">{error}</p>;
+  if (loadingInit) return <p className="text-slate-400 italic">Nalaganje podatkov za obrazec...</p>;
+  if (error && !submitLoading) return <p className="text-red-500 font-bold">{error}</p>;
+
+  const inputClasses = "w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all";
+  const labelClasses = "block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2";
 
   return (
-    <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-sm p-6">
-      <h1 className="text-2xl font-bold text-slate-900 mb-4">
-        Dodaj nov recept
+    <div className="max-w-3xl mx-auto bg-zinc-800 border border-zinc-700 rounded-2xl shadow-2xl p-8 mb-10">
+      <h1 className="text-3xl font-black text-white mb-8 tracking-tight">
+        Dodaj nov recept<span className="text-orange-500">.</span>
       </h1>
 
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        {/* osnovni podatki */}
-        <div>
-          <label className="block text-sm font-medium mb-1" htmlFor="naslov">
-            Naslov
-          </label>
-          <input
-            id="naslov"
-            name="naslov"
-            className="w-full border rounded-lg px-3 py-2"
-            value={form.naslov}
-            onChange={handleChange}
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1" htmlFor="opis">
-            Opis
-          </label>
-          <textarea
-            id="opis"
-            name="opis"
-            className="w-full border rounded-lg px-3 py-2 min-h-[80px]"
-            value={form.opis}
-            onChange={handleChange}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
+      <form className="space-y-8" onSubmit={handleSubmit}>
+        <div className="space-y-5">
           <div>
-            <label
-              className="block text-sm font-medium mb-1"
-              htmlFor="casPripraveMin"
-            >
-              Čas priprave (min)
-            </label>
+            <label className={labelClasses} htmlFor="naslov">Naslov recepta</label>
             <input
-              id="casPripraveMin"
-              name="casPripraveMin"
-              type="number"
-              className="w-full border rounded-lg px-3 py-2"
-              value={form.casPripraveMin}
+              id="naslov"
+              name="naslov"
+              className={inputClasses}
+              value={form.naslov}
               onChange={handleChange}
-              min={1}
+              placeholder="Npr. Babičina gobova juha"
             />
           </div>
+
           <div>
-            <label
-              className="block text-sm font-medium mb-1"
-              htmlFor="steviloPorcij"
-            >
-              Št. porcij
-            </label>
-            <input
-              id="steviloPorcij"
-              name="steviloPorcij"
-              type="number"
-              className="w-full border rounded-lg px-3 py-2"
-              value={form.steviloPorcij}
+            <label className={labelClasses} htmlFor="opis">Kratek opis</label>
+            <textarea
+              id="opis"
+              name="opis"
+              className={`${inputClasses} min-h-[100px] resize-none`}
+              value={form.opis}
               onChange={handleChange}
-              min={1}
+              placeholder="Opiši svoj recept v nekaj stavkih..."
             />
           </div>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <input
-            id="jeJaven"
-            name="jeJaven"
-            type="checkbox"
-            checked={form.jeJaven}
-            onChange={handleChange}
-          />
-          <label htmlFor="jeJaven" className="text-sm">
-            Javen recept
-          </label>
-        </div>
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <label className={labelClasses} htmlFor="casPripraveMin">Čas priprave (min)</label>
+              <input
+                id="casPripraveMin"
+                name="casPripraveMin"
+                type="number"
+                className={inputClasses}
+                value={form.casPripraveMin}
+                onChange={handleChange}
+                min={1}
+              />
+            </div>
+            <div>
+              <label className={labelClasses} htmlFor="steviloPorcij">Število porcij</label>
+              <input
+                id="steviloPorcij"
+                name="steviloPorcij"
+                type="number"
+                className={inputClasses}
+                value={form.steviloPorcij}
+                onChange={handleChange}
+                min={1}
+              />
+            </div>
+          </div>
 
-        {/* kategorije */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Kategorije</label>
-          <div className="flex flex-wrap gap-2">
-            {kategorije.map((k) => {
-              const checked = form.kategorijaIds.includes(k.id);
-              return (
-                <button
-                  key={k.id}
-                  type="button"
-                  onClick={() => toggleInArray("kategorijaIds", k.id)}
-                  className={
-                    "px-2 py-1 rounded-full border text-xs " +
-                    (checked
-                      ? "bg-blue-600 text-white border-blue-600"
-                      : "bg-white text-slate-700 border-slate-300")
-                  }
-                >
-                  {k.ime}
-                </button>
-              );
-            })}
+          <div className="flex items-center gap-3 p-3 bg-zinc-900/50 rounded-xl border border-zinc-700">
+            <input
+              id="jeJaven"
+              name="jeJaven"
+              type="checkbox"
+              className="w-5 h-5 rounded border-zinc-700 bg-zinc-900 accent-orange-500"
+              checked={form.jeJaven}
+              onChange={handleChange}
+            />
+            <label htmlFor="jeJaven" className="text-sm font-semibold text-slate-200 cursor-pointer">
+              Javno viden recept
+            </label>
           </div>
         </div>
 
-        {/* oznake */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Oznake</label>
-          <div className="flex flex-wrap gap-2">
-            {oznake.map((o) => {
-              const checked = form.oznakaIds.includes(o.id);
-              return (
-                <button
-                  key={o.id}
-                  type="button"
-                  onClick={() => toggleInArray("oznakaIds", o.id)}
-                  className={
-                    "px-2 py-1 rounded-full border text-xs " +
-                    (checked
-                      ? "bg-purple-600 text-white border-purple-600"
-                      : "bg-white text-slate-700 border-slate-300")
-                  }
-                >
-                  {o.ime}
-                </button>
-              );
-            })}
+        <div className="grid md:grid-cols-2 gap-8">
+          <div>
+            <label className={labelClasses}>Kategorije</label>
+            <div className="flex flex-wrap gap-2">
+              {kategorije.map((k) => {
+                const checked = form.kategorijaIds.includes(k.id);
+                return (
+                  <button
+                    key={k.id}
+                    type="button"
+                    onClick={() => toggleInArray("kategorijaIds", k.id)}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                      checked
+                        ? "bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-900/20"
+                        : "bg-zinc-900 border-zinc-700 text-slate-400 hover:border-orange-500/50"
+                    }`}
+                  >
+                    {k.ime}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <label className={labelClasses}>Oznake</label>
+            <div className="flex flex-wrap gap-2">
+              {oznake.map((o) => {
+                const checked = form.oznakaIds.includes(o.id);
+                return (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => toggleInArray("oznakaIds", o.id)}
+                    className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                      checked
+                        ? "bg-yellow-500 border-yellow-500 text-zinc-900 shadow-lg shadow-yellow-900/20"
+                        : "bg-zinc-900 border-zinc-700 text-slate-400 hover:border-yellow-500/50"
+                    }`}
+                  >
+                    {o.ime}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        {/* sestavine */}
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium">Sestavine</label>
+        <div className="bg-zinc-900/30 p-6 rounded-2xl border border-zinc-700/50">
+          <div className="flex items-center justify-between mb-4">
+            <label className={labelClasses}>Sestavine</label>
             <button
               type="button"
               onClick={addSestavinaRow}
-              className="text-xs text-amber-700 hover:underline"
+              className="text-xs font-bold text-yellow-500 hover:text-yellow-400 transition-colors uppercase tracking-wider"
             >
               + Dodaj sestavino
             </button>
           </div>
           {form.sestavine.length === 0 && (
-            <p className="text-sm text-slate-500">Ni sestavin. Dodaj prvo.</p>
+            <p className="text-sm text-slate-500 italic">Ni dodanih sestavin.</p>
           )}
-          <div className="space-y-2">
+          <div className="space-y-3">
             {form.sestavine.map((s, idx) => (
-              <div
-                key={idx}
-                className="grid grid-cols-[2fr,2fr,auto] gap-2 items-center"
-              >
+              <div key={idx} className="grid grid-cols-[1fr,1fr,auto] gap-3 items-center">
                 <select
-                  className="border rounded-lg px-2 py-1 text-sm"
+                  className="bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-white focus:border-yellow-500 outline-none"
                   value={s.sestavinaId}
-                  onChange={(e) =>
-                    updateSestavinaRow(idx, "sestavinaId", e.target.value)
-                  }
+                  onChange={(e) => updateSestavinaRow(idx, "sestavinaId", e.target.value)}
                 >
-                  <option value="">-- izberi sestavino --</option>
+                  <option value="">Izberi sestavino</option>
                   {sestavineMaster.map((sm) => (
-                    <option key={sm.id} value={sm.id}>
-                      {sm.ime}
-                    </option>
+                    <option key={sm.id} value={sm.id}>{sm.ime}</option>
                   ))}
                 </select>
                 <input
-                  className="border rounded-lg px-2 py-1 text-sm"
-                  placeholder="Količina (npr. 200 g)"
+                  className="bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-white focus:border-yellow-500 outline-none"
+                  placeholder="Količina (npr. 200g)"
                   value={s.kolicina}
-                  onChange={(e) =>
-                    updateSestavinaRow(idx, "kolicina", e.target.value)
-                  }
+                  onChange={(e) => updateSestavinaRow(idx, "kolicina", e.target.value)}
                 />
                 <button
                   type="button"
                   onClick={() => removeSestavinaRow(idx)}
-                  className="text-xs text-red-600"
+                  className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
                 >
-                  odstrani
+                  ✕
                 </button>
               </div>
             ))}
           </div>
         </div>
 
-        {/* koraki priprave */}
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-medium">
-              Koraki priprave
-            </label>
+        <div className="bg-zinc-900/30 p-6 rounded-2xl border border-zinc-700/50">
+          <div className="flex items-center justify-between mb-4">
+            <label className={labelClasses}>Koraki priprave</label>
             <button
               type="button"
               onClick={addKorakRow}
-              className="text-xs text-amber-700 hover:underline"
+              className="text-xs font-bold text-yellow-500 hover:text-yellow-400 transition-colors uppercase tracking-wider"
             >
               + Dodaj korak
             </button>
           </div>
           {form.korakiPriprave.length === 0 && (
-            <p className="text-sm text-slate-500">
-              Ni korakov. Dodaj prvi korak.
-            </p>
+            <p className="text-sm text-slate-500 italic">Ni dodanih korakov.</p>
           )}
-          <div className="space-y-2">
+          <div className="space-y-4">
             {form.korakiPriprave.map((k, idx) => (
-              <div key={idx} className="space-y-1 border rounded-lg p-2">
-                <div className="flex gap-2 items-center">
-                  <span className="text-xs text-slate-500">
-                    Korak {idx + 1}
-                  </span>
+              <div key={idx} className="space-y-3 border border-zinc-700 p-4 rounded-xl bg-zinc-900/50">
+                <div className="flex gap-3 items-center">
+                  <span className="text-xs font-black text-orange-500 uppercase">Korak {idx + 1}</span>
                   <input
                     type="number"
-                    className="border rounded px-2 py-1 text-xs w-20"
+                    className="bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-xs w-16 text-white"
                     value={k.zaporednaStevilka}
-                    onChange={(e) =>
-                      updateKorakRow(
-                        idx,
-                        "zaporednaStevilka",
-                        e.target.value
-                      )
-                    }
+                    onChange={(e) => updateKorakRow(idx, "zaporednaStevilka", e.target.value)}
                     min={1}
                   />
                   <input
                     type="number"
-                    className="border rounded px-2 py-1 text-xs w-24"
+                    className="bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-xs w-20 text-white"
                     placeholder="Min"
                     value={k.casTrajanjaMin || ""}
-                    onChange={(e) =>
-                      updateKorakRow(idx, "casTrajanjaMin", e.target.value)
-                    }
+                    onChange={(e) => updateKorakRow(idx, "casTrajanjaMin", e.target.value)}
                     min={0}
                   />
                   <button
                     type="button"
                     onClick={() => removeKorakRow(idx)}
-                    className="text-xs text-red-600 ml-auto"
+                    className="text-xs font-bold text-red-500 ml-auto hover:underline"
                   >
-                    odstrani
+                    Odstrani
                   </button>
                 </div>
                 <textarea
-                  className="w-full border rounded px-2 py-1 text-sm"
-                  placeholder="Opis koraka"
+                  className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white resize-none outline-none focus:border-yellow-500"
+                  placeholder="Podroben opis koraka..."
                   value={k.opis}
-                  onChange={(e) =>
-                    updateKorakRow(idx, "opis", e.target.value)
-                  }
+                  onChange={(e) => updateKorakRow(idx, "opis", e.target.value)}
                 />
               </div>
             ))}
           </div>
         </div>
 
-        {/* SLIKA (UPLOAD) */}
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Slika recepta (upload)
-          </label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
-            className="block w-full text-sm text-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100"
-          />
-          <input
-            type="text"
-            className="mt-2 w-full border rounded-lg px-3 py-2 text-sm"
-            placeholder="Opis slike (opcijsko)"
-            value={imageOpis}
-            onChange={(e) => setImageOpis(e.target.value)}
-          />
-          {imagePreview && (
-            <img
-              src={imagePreview}
-              alt="Predogled slike"
-              className="mt-2 h-32 w-32 object-cover rounded-lg border border-slate-200"
-            />
-          )}
+        <div className="bg-zinc-900/30 p-6 rounded-2xl border border-zinc-700/50">
+          <label className={labelClasses}>Slika recepta</label>
+          <div className="flex flex-col md:flex-row gap-6 items-start">
+            <div className="flex-1 w-full">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-zinc-700 file:text-white hover:file:bg-zinc-600 cursor-pointer"
+              />
+              <input
+                type="text"
+                className="mt-3 w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2 text-sm text-white outline-none focus:border-yellow-500"
+                placeholder="Kratek opis slike (npr. Končni izgled)"
+                value={imageOpis}
+                onChange={(e) => imageOpis(e.target.value)}
+              />
+            </div>
+            {imagePreview && (
+              <div className="relative group">
+                <img
+                  src={imagePreview}
+                  alt="Predogled"
+                  className="h-32 w-32 object-cover rounded-xl border-2 border-orange-500 shadow-lg"
+                />
+              </div>
+            )}
+          </div>
         </div>
 
-        {error && <p className="text-red-600 text-sm">{error}</p>}
+        {error && <p className="text-red-500 text-sm font-bold bg-red-500/10 p-3 rounded-xl border border-red-500/20">{error}</p>}
 
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-4 border-t border-zinc-700">
           <button
             type="submit"
             disabled={submitLoading}
-            className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50"
+            className="px-8 py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white font-black rounded-xl hover:brightness-110 shadow-xl shadow-orange-900/30 active:scale-[0.98] transition-all disabled:opacity-50"
           >
             {submitLoading ? "Shranjevanje..." : "Shrani recept"}
           </button>

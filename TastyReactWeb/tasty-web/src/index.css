@@ -1,3 +1,10 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    /* Changed from black to zinc-900 (Charcoal) */
+    @apply bg-zinc-900 text-slate-200;
+  }
+}

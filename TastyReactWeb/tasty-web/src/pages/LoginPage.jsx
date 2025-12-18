@@ -37,50 +37,55 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto bg-white rounded-xl shadow-sm p-6">
-      <h1 className="text-2xl font-bold mb-4 text-slate-900">Prijava</h1>
+    /* Container updated to dark zinc palette */
+    <div className="max-w-md mx-auto bg-zinc-800 border border-zinc-700 rounded-2xl shadow-2xl p-8 mt-10">
+      <h1 className="text-3xl font-black mb-6 text-white tracking-tight">
+        Prijava<span className="text-orange-500">.</span>
+      </h1>
 
-      <form className="space-y-4" onSubmit={handleSubmit}>
+      <form className="space-y-5" onSubmit={handleSubmit}>
         <div>
-          <label className="block text-sm font-medium mb-1" htmlFor="email">
-            Email
+          <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2" htmlFor="email">
+            Email Naslov
           </label>
           <input
             id="email"
-            className="w-full border rounded-lg px-3 py-2"
+            className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             type="email"
+            placeholder="vas-email@tasty.si"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1" htmlFor="geslo">
+          <label className="block text-xs font-bold uppercase tracking-widest text-slate-400 mb-2" htmlFor="geslo">
             Geslo
           </label>
           <input
             id="geslo"
-            className="w-full border rounded-lg px-3 py-2"
+            className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all"
             value={geslo}
             onChange={(e) => setGeslo(e.target.value)}
             type="password"
+            placeholder="••••••••"
           />
         </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-red-500 font-medium">{error}</p>}
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50"
+          className="w-full px-4 py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold rounded-xl hover:brightness-110 shadow-lg shadow-orange-900/20 active:scale-[0.98] transition-all disabled:opacity-50"
         >
           {loading ? "Prijavljam..." : "Prijava"}
         </button>
       </form>
 
-      <p className="text-sm text-slate-600 mt-4">
+      <p className="text-sm text-slate-400 mt-6 text-center">
         Nimaš računa?{" "}
-        <Link to="/register" className="text-amber-700 hover:underline">
+        <Link to="/register" className="text-yellow-500 hover:text-yellow-400 font-semibold transition-colors">
           Registriraj se
         </Link>
       </p>

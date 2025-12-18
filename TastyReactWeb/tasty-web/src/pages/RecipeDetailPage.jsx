@@ -24,234 +24,200 @@ export default function RecipeDetailPage() {
     load();
   }, [id]);
 
-  if (loading) return <p>Nalaganje...</p>;
-  if (error) return <p className="text-red-600">{error}</p>;
-  if (!recept) return <p>Recept ni najden.</p>;
+  if (loading) return <p className="text-slate-400 italic">Nalaganje...</p>;
+  if (error) return <p className="text-red-500 font-bold">{error}</p>;
+  if (!recept) return <p className="text-slate-400">Recept ni najden.</p>;
 
-  // ---------- AVTOR ----------
+  // ---------- DATA PARSING ----------
 
   const authorName =
     recept.avtorIme ??
     recept.avtor?.ime ??
     (recept.avtorId ? `Uporabnik #${recept.avtorId}` : null);
 
-  // ---------- NASLOVNA SLIKA ----------
-
   const naslovnaSlika =
     (recept.slike || []).find((s) => s.jeNaslovna) ||
     (recept.slike || [])[0];
 
-  // ---------- KATEGORIJE ----------
-
-  let kategorije = [];
-
-  if (Array.isArray(recept.kategorije)) {
-    if (recept.kategorije.length > 0) {
-      if (typeof recept.kategorije[0] === "string") {
-        // DTO: ["Glavna jed", "Desert"]
-        kategorije = recept.kategorije;
-      } else {
-        // EF entity: [{ kategorija: { ime: "Glavna jed" }, ... }]
-        kategorije = recept.kategorije
-          .map((k) => k.ime ?? k.kategorija?.ime ?? k.naziv ?? k.name)
-          .filter(Boolean);
-      }
-    }
-  }
-
-  // ---------- OZNake ----------
-
-  let oznake = [];
-
-  if (Array.isArray(recept.oznake)) {
-    if (recept.oznake.length > 0) {
-      if (typeof recept.oznake[0] === "string") {
-        // DTO: ["Vegansko", "Hitro"]
-        oznake = recept.oznake;
-      } else {
-        // EF entity: [{ oznaka: { ime: "Vegansko" }, ... }]
-        oznake = recept.oznake
-          .map((o) => o.ime ?? o.oznaka?.ime ?? o.naziv ?? o.name)
-          .filter(Boolean);
-      }
-    }
-  }
-
-  // ---------- SESTAVINE ----------
-
-  const sestavineRaw = Array.isArray(recept.sestavine) ? recept.sestavine : [];
-  const sestavineView = sestavineRaw
-    .map((s) => {
-      const ime =
-        s.sestavinaIme ??
-        s.sestavina?.ime ??
-        s.ime ??
-        s.naziv ??
-        null;
-
-      if (!ime) return null;
-
-      return {
-        id: s.sestavinaId ?? s.id ?? s.sestavina?.id ?? ime,
-        ime,
-        kolicina: s.kolicina ?? s.količina ?? null,
-        opomba: s.opomba ?? null,
-      };
-    })
-    .filter(Boolean);
-
-  // ---------- KORAKI ----------
-
-  const korakiRaw = Array.isArray(recept.korakiPriprave)
-    ? recept.korakiPriprave
-    : Array.isArray(recept.koraki)
-    ? recept.koraki
+  let kategorije = Array.isArray(recept.kategorije) 
+    ? recept.kategorije.map(k => (typeof k === 'string' ? k : k.ime ?? k.kategorija?.ime)).filter(Boolean)
     : [];
 
-  const korakiView = korakiRaw
+  let oznake = Array.isArray(recept.oznake) 
+    ? recept.oznake.map(o => (typeof o === 'string' ? o : o.ime ?? o.oznaka?.ime)).filter(Boolean)
+    : [];
+
+  const sestavineView = (Array.isArray(recept.sestavine) ? recept.sestavine : [])
+    .map((s) => ({
+      id: s.sestavinaId ?? s.id ?? s.sestavina?.id,
+      ime: s.sestavinaIme ?? s.sestavina?.ime ?? s.ime ?? s.naziv,
+      kolicina: s.kolicina ?? s.količina,
+      opomba: s.opomba,
+    })).filter(s => s.ime);
+
+  const korakiView = (Array.isArray(recept.korakiPriprave) ? recept.korakiPriprave : [])
     .map((k) => ({
-      id: k.id ?? k.korakId ?? k.zaporednaStevilka ?? Math.random(),
-      zaporednaStevilka:
-        k.zaporednaStevilka ?? k.zaporedje ?? k.step ?? 0,
-      opis: k.opis ?? k.description ?? "",
-      casTrajanjaMin:
-        k.casTrajanjaMin ?? k.trajanjeMin ?? k.timeMin ?? null,
-    }))
-    .sort(
-      (a, b) => (a.zaporednaStevilka ?? 0) - (b.zaporednaStevilka ?? 0)
-    );
+      id: k.id ?? k.korakId ?? k.zaporednaStevilka,
+      zaporednaStevilka: k.zaporednaStevilka ?? 0,
+      opis: k.opis ?? "",
+      casTrajanjaMin: k.casTrajanjaMin,
+    })).sort((a, b) => a.zaporednaStevilka - b.zaporednaStevilka);
+
+  // ---------- RENDER ----------
 
   return (
-    <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-sm p-4 md:p-6">
-      {/* NASLOVNA SLIKA */}
-      {naslovnaSlika && (
-        <div className="mb-4">
-          <img
-            src={resolveImageUrl(naslovnaSlika.url)}
-            alt={naslovnaSlika.opis || recept.naslov}
-            className="w-full max-h-80 object-cover rounded-xl shadow-sm"
-          />
-          {naslovnaSlika.opis && (
-            <p className="text-xs text-slate-500 mt-1">
-              {naslovnaSlika.opis}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* OSNOVNE INFO */}
-      <h1 className="text-3xl font-bold text-slate-900 mb-2">
-        {recept.naslov}
-      </h1>
-      <div className="flex flex-wrap gap-4 text-sm text-slate-600 mb-4">
-        {authorName && <span>Avtor: {authorName}</span>}
-        <span>⏱ {recept.casPripraveMin} min</span>
-        <span>🍽 {recept.steviloPorcij} porcij</span>
-        {recept.jeJaven && (
-          <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-100">
-            Javen
-          </span>
+    <div className="max-w-4xl mx-auto space-y-8 pb-12">
+      {/* HEADER SECTION WITH IMAGE */}
+      <div className="relative group">
+        {naslovnaSlika ? (
+          <div className="relative h-[400px] w-full overflow-hidden rounded-3xl shadow-2xl">
+            <img
+              src={resolveImageUrl(naslovnaSlika.url)}
+              alt={naslovnaSlika.opis || recept.naslov}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 via-zinc-900/40 to-transparent" />
+            
+            <div className="absolute bottom-0 left-0 p-8 w-full">
+              <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight mb-4 drop-shadow-md">
+                {recept.naslov}<span className="text-orange-500">.</span>
+              </h1>
+              <div className="flex flex-wrap gap-4 text-sm font-bold uppercase tracking-wider text-slate-200">
+                <span className="flex items-center gap-2 bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10">
+                  <span className="text-orange-500 text-lg">⏱</span> {recept.casPripraveMin} MIN
+                </span>
+                <span className="flex items-center gap-2 bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10">
+                  <span className="text-red-500 text-lg">🍽</span> {recept.steviloPorcij} PORCIJ
+                </span>
+                {recept.jeJaven && (
+                  <span className="bg-emerald-500/20 text-emerald-400 backdrop-blur-md px-3 py-1.5 rounded-lg border border-emerald-500/30">
+                    JAVNO
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <h1 className="text-4xl font-black text-white tracking-tight">{recept.naslov}<span className="text-orange-500">.</span></h1>
         )}
       </div>
 
-      {recept.opis && (
-        <p className="mb-4 text-slate-700 whitespace-pre-wrap">
-          {recept.opis}
-        </p>
-      )}
-
-      {/* GALERIJA */}
-      {recept.slike && recept.slike.length > 1 && (
-        <div className="mb-4">
-          <h2 className="font-semibold mb-1 text-sm">Galerija</h2>
-          <div className="flex gap-2 overflow-x-auto">
-            {recept.slike.map((s) => (
-              <img
-                key={s.id}
-                src={resolveImageUrl(s.url)}
-                alt={s.opis || ""}
-                className={
-                  "h-20 w-20 object-cover rounded-lg border " +
-                  (s.jeNaslovna ? "border-amber-500" : "border-slate-200")
-                }
-              />
-            ))}
+      <div className="grid lg:grid-cols-3 gap-8">
+        {/* LEFT COLUMN: INFO, SESTAVINE, KATEGORIJE & OZNAKE */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* AUTHOR & DESCRIPTION */}
+          <div className="bg-zinc-800 border border-zinc-700 p-6 rounded-2xl shadow-xl">
+            <p className="text-xs font-black text-orange-500 uppercase tracking-widest mb-2">Chef</p>
+            <p className="text-lg font-bold text-white mb-4">{authorName || "Neznan avtor"}</p>
+            <div className="h-px bg-zinc-700 mb-4" />
+            <p className="text-slate-400 text-sm leading-relaxed italic">
+              "{recept.opis || "Ta recept še nima opisa."}"
+            </p>
           </div>
-        </div>
-      )}
 
-      {/* KATEGORIJE */}
-      {kategorije.length > 0 && (
-        <div className="mb-4">
-          <h2 className="font-semibold mb-1">Kategorije</h2>
-          <div className="flex flex-wrap gap-2 text-xs">
-            {kategorije.map((k) => (
-              <span
-                key={k}
-                className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full border border-blue-100"
-              >
-                {k}
-              </span>
-            ))}
+          {/* SESTAVINE */}
+          <div className="bg-zinc-800 border border-zinc-700 p-6 rounded-2xl shadow-xl">
+            <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Sestavine</h2>
+            <ul className="space-y-3">
+              {sestavineView.map((s) => (
+                <li key={s.id} className="flex justify-between items-start text-sm border-b border-zinc-700/50 pb-2 last:border-0">
+                  <span className="text-slate-200 font-medium">{s.ime}</span>
+                  <div className="text-right">
+                    <span className="text-orange-400 font-bold">{s.kolicina}</span>
+                    {s.opomba && <p className="text-[10px] text-slate-500">{s.opomba}</p>}
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
-        </div>
-      )}
 
-      {/* OZNake */}
-      {oznake.length > 0 && (
-        <div className="mb-4">
-          <h2 className="font-semibold mb-1">Oznake</h2>
-          <div className="flex flex-wrap gap-2 text-xs">
-            {oznake.map((o) => (
-              <span
-                key={o}
-                className="px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full border border-purple-100"
-              >
-                {o}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* SESTAVINE */}
-      {sestavineView.length > 0 && (
-        <div className="mb-4">
-          <h2 className="font-semibold mb-1">Sestavine</h2>
-          <ul className="list-disc list-inside text-slate-700">
-            {sestavineView.map((s) => (
-              <li key={s.id}>
-                <span className="font-medium">{s.ime}</span>
-                {s.kolicina && <> – {s.kolicina}</>}
-                {s.opomba && <> ({s.opomba})</>}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* KORAKI */}
-      {korakiView.length > 0 && (
-        <div className="mb-4">
-          <h2 className="font-semibold mb-1">Koraki priprave</h2>
-          <ol className="list-decimal list-inside space-y-1 text-slate-700">
-            {korakiView.map((k) => (
-              <li key={k.id}>
-                <span className="font-medium">
-                  Korak {k.zaporednaStevilka}:
-                </span>{" "}
-                {k.opis}
-                {k.casTrajanjaMin != null && (
-                  <span className="text-xs text-slate-500">
-                    {" "}
-                    ({k.casTrajanjaMin} min)
+          {/* KATEGORIJE SECTION */}
+          {kategorije.length > 0 && (
+            <div className="bg-zinc-800 border border-zinc-700 p-6 rounded-2xl shadow-xl">
+              <h2 className="text-xs font-black text-orange-500 uppercase tracking-widest mb-4">Kategorije</h2>
+              <div className="flex flex-wrap gap-2">
+                {kategorije.map((k) => (
+                  <span key={k} className="px-3 py-1 bg-orange-500/10 border border-orange-500/30 text-orange-400 text-[10px] font-black uppercase rounded-lg">
+                    {k}
                   </span>
-                )}
-              </li>
-            ))}
-          </ol>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* OZNAKE SECTION */}
+          {oznake.length > 0 && (
+            <div className="bg-zinc-800 border border-zinc-700 p-6 rounded-2xl shadow-xl">
+              <h2 className="text-xs font-black text-yellow-500 uppercase tracking-widest mb-4">Oznake</h2>
+              <div className="flex flex-wrap gap-2">
+                {oznake.map((o) => (
+                  <span key={o} className="px-3 py-1 bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-[10px] font-black uppercase rounded-lg">
+                    {o}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-      )}
+
+        {/* RIGHT COLUMN: KORAKI */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-zinc-800 border border-zinc-700 p-8 rounded-3xl shadow-xl">
+            <h2 className="text-xl font-black text-white mb-8 flex items-center gap-3">
+              <span className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center text-sm">✓</span>
+              Postopek priprave
+            </h2>
+            
+            <div className="space-y-8 relative">
+              {/* Vertical timeline line */}
+              <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-zinc-700" />
+              
+              {korakiView.map((k, idx) => (
+                <div key={k.id} className="relative pl-12">
+                  {/* Step number circle */}
+                  <div className="absolute left-0 top-0 w-8 h-8 bg-zinc-900 border-2 border-orange-500 rounded-full flex items-center justify-center z-10">
+                    <span className="text-xs font-black text-white">{k.zaporednaStevilka}</span>
+                  </div>
+                  
+                  <div className="bg-zinc-900/50 border border-zinc-700 p-5 rounded-2xl hover:border-zinc-600 transition-colors">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-[10px] font-black text-slate-500 uppercase">Korak {idx + 1}</span>
+                      {k.casTrajanjaMin && (
+                        <span className="text-[10px] font-bold text-yellow-500 bg-yellow-500/10 px-2 py-0.5 rounded">
+                          {k.casTrajanjaMin} MIN
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-slate-300 leading-relaxed text-sm">
+                      {k.opis}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* GALLERY MINIATURES */}
+          {recept.slike && recept.slike.length > 1 && (
+            <div className="bg-zinc-800 border border-zinc-700 p-6 rounded-2xl shadow-xl">
+              <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Galerija slik</h2>
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                {recept.slike.map((s) => (
+                  <img
+                    key={s.id}
+                    src={resolveImageUrl(s.url)}
+                    alt={s.opis || ""}
+                    className={
+                      "h-24 w-24 object-cover rounded-xl border-2 transition-all hover:scale-105 " +
+                      (s.jeNaslovna ? "border-orange-500" : "border-zinc-700 hover:border-zinc-500")
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
