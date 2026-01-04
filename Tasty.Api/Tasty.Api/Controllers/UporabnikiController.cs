@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using BCrypt.Net;
 using Tasty.Api.Data;
 using Tasty.Api.Dtos;
 using Tasty.Api.Models;
@@ -62,13 +63,14 @@ namespace Tasty.Api.Controllers
         [HttpPost]
         public async Task<ActionResult<UporabnikDto>> CreateUporabnik([FromBody] UporabnikCreateDto dto)
         {
+
             // TODO: tukaj bi moral geslo hashirati (npr. z PBKDF2/bcrypt).
             // Za zdaj samo demonstracija.
             var uporabnik = new Uporabnik
             {
                 Ime = dto.Ime,
                 Email = dto.Email,
-                GesloHash = dto.Geslo, // kasneje zamenjaš z hashom
+                GesloHash = BCrypt.Net.BCrypt.HashPassword(dto.Geslo),
                 DatumRegistracije = DateTime.UtcNow
             };
 

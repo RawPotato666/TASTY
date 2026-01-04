@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using BCrypt.Net;
 using Tasty.Api.Data;
 using Tasty.Api.Dtos;
+
 
 namespace Tasty.Api.Controllers
 {
@@ -32,7 +34,7 @@ namespace Tasty.Api.Controllers
                 .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Email == request.Email);
 
-            if (user == null || user.GesloHash != request.Geslo)
+            if (user == null || !BCrypt.Net.BCrypt.Verify(request.Geslo, user.GesloHash))
             {
                 await Task.Delay(200);
                 return Unauthorized("Napačen email ali geslo.");
