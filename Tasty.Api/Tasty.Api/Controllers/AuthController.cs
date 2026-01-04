@@ -33,7 +33,8 @@ namespace Tasty.Api.Controllers
             var user = await _context.Uporabniki
                 .AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Email == request.Email);
-
+            
+            //s pomočjo knjižnice BCrypt preverimo ali se hashano geslo ujema z vnesenim geslom
             if (user == null || !BCrypt.Net.BCrypt.Verify(request.Geslo, user.GesloHash))
             {
                 await Task.Delay(200);

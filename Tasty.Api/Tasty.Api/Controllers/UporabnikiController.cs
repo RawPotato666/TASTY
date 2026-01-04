@@ -70,7 +70,7 @@ namespace Tasty.Api.Controllers
             {
                 Ime = dto.Ime,
                 Email = dto.Email,
-                GesloHash = BCrypt.Net.BCrypt.HashPassword(dto.Geslo),
+                GesloHash = BCrypt.Net.BCrypt.HashPassword(dto.Geslo), // dodana Bcrypt hash funkcionalnost
                 DatumRegistracije = DateTime.UtcNow
             };
 
@@ -101,8 +101,8 @@ namespace Tasty.Api.Controllers
 
             if (!string.IsNullOrWhiteSpace(dto.Geslo))
             {
-                // TODO: hash gesla, ne shranjuj plain text
-                uporabnik.GesloHash = dto.Geslo;
+                // dodana Bcrypt hash funkcionalnost
+                uporabnik.GesloHash = BCrypt.Net.BCrypt.HashPassword(dto.Geslo);
             }
 
             await _context.SaveChangesAsync();
